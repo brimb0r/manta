@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 
+	"github.com/gagno/terraform-provider-manta/internal/functions"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -62,10 +63,10 @@ func (p *mantaProvider) DataSources(_ context.Context) []func() datasource.DataS
 
 func (p *mantaProvider) Functions(_ context.Context) []func() function.Function {
 	return []func() function.Function{
-		NewDeepMergeFunction,
-		NewIsPalindromeFunction,
-		NewMaskFunction,
-		NewSemverCompareFunction,
-		NewTruncateFunction,
+		functions.NewDeepMergeFunction,
+		functions.NewIsPalindromeFunction,
+		functions.NewMaskFunction,
+		functions.NewSemverCompareFunction,
+		functions.NewTruncateFunction,
 	}
 }
