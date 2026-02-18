@@ -62,6 +62,10 @@ func (p *mantaProvider) DataSources(_ context.Context) []func() datasource.DataS
 
 func (p *mantaProvider) Functions(_ context.Context) []func() function.Function {
 	return []func() function.Function{
+		NewDeepMergeFunction,
 		NewIsPalindromeFunction,
+		NewMaskFunction,
+		NewSemverCompareFunction,
+		NewTruncateFunction,
 	}
 }

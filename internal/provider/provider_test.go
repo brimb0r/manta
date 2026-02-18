@@ -50,22 +50,20 @@ func TestMantaProvider_Functions(t *testing.T) {
 	}
 
 	funcs := pf.Functions(context.Background())
-	if len(funcs) == 0 {
-		t.Fatal("expected at least one function, got none")
-	}
 
-	// Verify is_palindrome is registered.
-	found := false
+	// Collect registered function names.
+	registered := make(map[string]bool)
 	for _, fn := range funcs {
 		f := fn()
 		var metaResp function.MetadataResponse
 		f.Metadata(context.Background(), function.MetadataRequest{}, &metaResp)
-		if metaResp.Name == "is_palindrome" {
-			found = true
-			break
-		}
+		registered[metaResp.Name] = true
 	}
-	if !found {
-		t.Error("is_palindrome function not found in provider functions")
+
+	expected := []string{"deep_merge", "is_palindrome", "mask", "semver_compare", "truncate"}
+	for _, name := range expected {
+		if !registered[name] {
+			t.Errorf("function %q not found in provider functions", name)
+		}
 	}
 }
