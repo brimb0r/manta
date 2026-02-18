@@ -1,0 +1,6 @@
+terraform-provider-manta
+terraform-provider-manta.exe
+.terraform/
+*.tfstate
+*.tfstate.*
+.idea/

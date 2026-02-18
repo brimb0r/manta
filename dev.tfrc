@@ -1,0 +1,21 @@
+# Filesystem mirror for terraform-provider-manta (local dev)
+#
+# Usage (PowerShell, from project root):
+#   $env:TF_CLI_CONFIG_FILE = "C:\Users\gagno\dev\go\manta\dev.tfrc"
+#   make install
+#   cd examples\provider
+#   terraform init
+#   terraform plan
+#
+# This tells Terraform to pull gagno/manta from the local filesystem
+# mirror in %APPDATA%\terraform.d\plugins instead of the registry.
+
+provider_installation {
+  filesystem_mirror {
+    path    = "C:/Users/gagno/AppData/Roaming/terraform.d/plugins"
+    include = ["gagno/manta"]
+  }
+  direct {
+    exclude = ["gagno/manta"]
+  }
+}
