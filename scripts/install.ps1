@@ -1,14 +1,13 @@
 #
-# Install a terraform-provider-manta release zip for local dev use.
+# Install a terraform-provider-manta release zip for local use.
 #
 # Usage:
 #   .\install.ps1 terraform-provider-manta_0.0.1_windows_amd64.zip
 #
 # What it does:
 #   1. Extracts the binary from the zip
-#   2. Puts it in a dev_overrides directory
-#   3. Ensures your Terraform CLI config has a dev_overrides block
-#      pointing to that directory so you can skip `terraform init`
+#   2. Places it in the Terraform filesystem_mirror plugin directory
+#      so that `terraform init` picks it up locally
 
 param(
     [Parameter(Mandatory = $true, Position = 0)]
@@ -17,7 +16,9 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$ProviderSource = "registry.terraform.io/gagno/manta"
+$Hostname = "registry.terraform.io"
+$Namespace = "gagno"
+$ProviderType = "manta"
 
 # Resolve zip path
 if (-not (Test-Path $ZipFile)) {
@@ -30,53 +31,44 @@ if (-not (Test-Path $ZipFile)) {
     }
 }
 
-# Parse version from filename: terraform-provider-manta_0.0.1_windows_amd64.zip
+# Parse version, os, arch from filename: terraform-provider-manta_0.0.1_windows_amd64.zip
 $BaseName = [System.IO.Path]::GetFileNameWithoutExtension($ZipFile)
-if ($BaseName -match '^terraform-provider-manta_(\d+\.\d+\.\d+)') {
+if ($BaseName -match '^terraform-provider-manta_(\d+\.\d+\.\d+)_(\w+)_(\w+)$') {
     $Version = $Matches[1]
+    $Os = $Matches[2]
+    $Arch = $Matches[3]
 } else {
-    Write-Error "Could not parse version from filename: $ZipFile"
+    Write-Error "Could not parse version/os/arch from filename: $ZipFile"
 }
 
-$DevDir = Join-Path $env:APPDATA "terraform-provider-manta-dev"
-$RcFile = Join-Path $env:APPDATA "terraform.rc"
+# Build the filesystem_mirror plugin directory path
+$PluginDir = Join-Path $env:APPDATA "terraform.d\plugins\$Hostname\$Namespace\$ProviderType\$Version\${Os}_${Arch}"
 
-if (-not (Test-Path $DevDir)) {
-    New-Item -ItemType Directory -Path $DevDir -Force | Out-Null
+if (-not (Test-Path $PluginDir)) {
+    New-Item -ItemType Directory -Path $PluginDir -Force | Out-Null
 }
 
-# Extract
+# Extract to a temp directory first, then copy the binary into the plugin dir
+$TempDir = Join-Path ([System.IO.Path]::GetTempPath()) "terraform-provider-manta-install"
+if (Test-Path $TempDir) {
+    Remove-Item -Recurse -Force $TempDir
+}
+New-Item -ItemType Directory -Path $TempDir -Force | Out-Null
+
 Write-Host "Extracting $ZipFile ..."
-Expand-Archive -Path $ZipFile -DestinationPath $DevDir -Force
+Expand-Archive -Path $ZipFile -DestinationPath $TempDir -Force
 
-Write-Host "Binary installed to: $DevDir"
-
-# Configure dev_overrides in Terraform CLI config
-$DevDirHcl = $DevDir -replace '\\', '/'
-
-if ((Test-Path $RcFile) -and (Select-String -Path $RcFile -Pattern ([regex]::Escape($ProviderSource)) -Quiet)) {
-    Write-Host "dev_overrides already configured in $RcFile"
-} elseif ((Test-Path $RcFile) -and (Select-String -Path $RcFile -Pattern "dev_overrides" -Quiet)) {
-    Write-Host ""
-    Write-Host "WARNING: $RcFile already has a dev_overrides block but does not include"
-    Write-Host "  $ProviderSource"
-    Write-Host ""
-    Write-Host "Add this line inside the dev_overrides block manually:"
-    Write-Host "    `"$ProviderSource`" = `"$DevDirHcl`""
-} else {
-    $Block = @"
-
-provider_installation {
-  dev_overrides {
-    "$ProviderSource" = "$DevDirHcl"
-  }
-  direct {}
+# Copy the binary into the plugin directory
+$Binary = Get-ChildItem -Path $TempDir -Filter "terraform-provider-manta*" | Select-Object -First 1
+if (-not $Binary) {
+    Write-Error "No terraform-provider-manta binary found in zip"
 }
-"@
-    Add-Content -Path $RcFile -Value $Block
-    Write-Host "Wrote dev_overrides to $RcFile"
-}
+Copy-Item -Path $Binary.FullName -Destination $PluginDir -Force
 
+# Clean up temp dir
+Remove-Item -Recurse -Force $TempDir
+
+Write-Host "Installed to: $PluginDir\$($Binary.Name)"
 Write-Host ""
 Write-Host "Done! v$Version is ready for local use."
-Write-Host "Terraform will use the local binary - no 'terraform init' required."
+Write-Host "Run 'terraform init' to pick up the local provider."
