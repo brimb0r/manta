@@ -1,5 +1,6 @@
 # Visit https://goreleaser.com for documentation on how to customize this
 # behavior.
+project_name: terraform-provider-manta
 version: 2
 before:
   hooks:

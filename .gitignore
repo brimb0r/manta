@@ -4,3 +4,4 @@ terraform-provider-manta.exe
 *.tfstate
 *.tfstate.*
 .idea/
+*.zip
